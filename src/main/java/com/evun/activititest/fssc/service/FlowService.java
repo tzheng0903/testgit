@@ -18,7 +18,7 @@ public class FlowService {
 
 
 	public void moveTo(String taskId,String taskDefKey){
-		((RuntimeServiceImpl)processEngine.getRuntimeService()).getCommandExecutor().execute(new MoveToCmd(taskId, null, false, taskDefKey));
+		((RuntimeServiceImpl)processEngine.getRuntimeService()).getCommandExecutor().execute(new MoveToCmd(taskId, taskDefKey));
 	}
 	public void moveToAndReturn(String taskId,String taskDefKey){
 		((RuntimeServiceImpl)processEngine.getRuntimeService()).getCommandExecutor().execute(new MoveToAndReturnCmd(taskId,taskDefKey));

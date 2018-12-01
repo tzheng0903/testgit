@@ -1,12 +1,16 @@
 package com.evun.activititest.fssc.cmd;
 
-import java.util.Map;
+import java.util.List;
 
 import org.activiti.engine.ActivitiObjectNotFoundException;
+import org.activiti.engine.history.HistoricTaskInstance;
+import org.activiti.engine.impl.HistoricTaskInstanceQueryImpl;
 import org.activiti.engine.impl.cmd.NeedsActiveTaskCmd;
 import org.activiti.engine.impl.interceptor.CommandContext;
 import org.activiti.engine.impl.persistence.entity.ExecutionEntity;
 import org.activiti.engine.impl.persistence.entity.TaskEntity;
+import org.activiti.engine.impl.pvm.PvmActivity;
+import org.activiti.engine.impl.pvm.PvmTransition;
 import org.activiti.engine.impl.pvm.process.ActivityImpl;
 import org.activiti.engine.impl.pvm.process.ProcessDefinitionImpl;
 import org.activiti.engine.task.Task;
@@ -26,14 +30,10 @@ public class MoveToCmd extends NeedsActiveTaskCmd<java.lang.Void>{
 	private static final String RESON="JUMP";
 	
 	private static final long serialVersionUID = 1L;
-	protected Map<String, Object> variables;
-	protected boolean localScope;
 	protected String taskDefKey;
 	
-	public MoveToCmd(String taskId, Map<String, Object> variables, boolean localScope, String taskDefKey) {
+	public MoveToCmd(String taskId, String taskDefKey) {
 		super(taskId);
-		this.variables = variables;
-		this.localScope = localScope;
 		this.taskDefKey = taskDefKey;
 	}
 
@@ -41,20 +41,49 @@ public class MoveToCmd extends NeedsActiveTaskCmd<java.lang.Void>{
 
 	@Override
 	protected Void execute(CommandContext commandContext, TaskEntity task) {
-		ExecutionEntity execution = commandContext.getExecutionEntityManager().findExecutionById(task.getExecutionId());
+		
+		HistoricTaskInstance historyTaskInstance = getHistoryTask(commandContext);
+		ExecutionEntity execution = commandContext.getExecutionEntityManager().findExecutionById(task.getExecutionId());//当前执行流
 		if(execution == null){
-        	throw new ActivitiObjectNotFoundException("Cannot find execution with id " + task.getExecutionId(), Task.class);
-        }
-        execution.destroyScope(RESON); 
-        ProcessDefinitionImpl processDefinition = execution.getProcessDefinition();
-        ActivityImpl findActivity = processDefinition.findActivity(taskDefKey);
-        if(findActivity == null){
-        	throw new ActivitiObjectNotFoundException("Cannot find activity with id " + taskDefKey, ActivityImpl.class);
-        }
-        execution.executeActivity(findActivity);
+			throw new ActivitiObjectNotFoundException("Cannot find execution with id " + task.getExecutionId(), Task.class);
+		}
+		ProcessDefinitionImpl processDefinition = execution.getProcessDefinition();//流程定义
+		ActivityImpl targetActivity = processDefinition.findActivity(taskDefKey);//目标流程跳转点
+		ActivityImpl currentActivity = processDefinition.findActivity(task.getTaskDefinitionKey());//当前任务定义点
+		if(targetActivity == null){
+			throw new ActivitiObjectNotFoundException("Cannot find activity with id " + taskDefKey, ActivityImpl.class);
+		}
+		
+		if(historyTaskInstance.getExecutionId().equals(task.getExecutionId())){//如果再统一个执行流
+			execution.destroyScope(RESON); 
+			execution.executeActivity(targetActivity);
+		}else{//如果不是同一个执行流，也就是再分支上面，则进行复制处理
+			
+		}
+		
         return null;
 	}
 	
+	private HistoricTaskInstance getHistoryTask(CommandContext commandContext){
+		HistoricTaskInstanceQueryImpl historicTaskInstanceQuery = new HistoricTaskInstanceQueryImpl();
+		historicTaskInstanceQuery.taskDefinitionKey(taskDefKey);
+		List<HistoricTaskInstance> list = commandContext.getHistoricTaskInstanceEntityManager().findHistoricTaskInstancesByQueryCriteria(historicTaskInstanceQuery);
+		return list.get(list.size()-1);
+	}
+	
+	/**
+	 * 获取从目标点到当前点经过的任务点
+	 * @param currentActivity
+	 * @param targetActivity
+	 * @return
+	 */
+	private List<ActivityImpl> getRoutList(ActivityImpl currentActivity,ActivityImpl targetActivity){
+		List<PvmTransition> list = targetActivity.getOutgoingTransitions();
+		for (PvmTransition pvmTransition : list) {
+			PvmActivity activity = pvmTransition.getDestination();
+		}
+		return null;
+	}
 	
 
 }

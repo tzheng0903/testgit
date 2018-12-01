@@ -135,9 +135,9 @@ public class Test1 {
 	
 	@Test
 	public void test() throws Exception {
-//		deploy("addprocess.bpmn");
-		ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("addprocess");
-//		taskService.complete("467502");
+//		deploy("fssc2.bpmn");
+//		ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("fssc2");
+		taskService.complete("525002");
 //		runtimeService.deleteProcessInstance("465001", "");
 //		fs.moveTo("347503", "audit2");
 //		taskService.claim("357502", "user_manager");
